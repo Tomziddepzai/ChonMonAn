@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Hôm nay chị muốn ăn gì? 💕</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /*
+      V4 - Add animated color-running send button (keeps sendChoice unchanged).
+      - Button now has a smoothly moving multicolor gradient.
+      - Respects prefers-reduced-motion.
+      - While sending, the gradient speeds up and a subtle glow appears.
+    */
+
+    :root{
+      --bg-start: #ffd8e8;
+      --bg-end:   #efe2ff;
+      --card-bg-a: #fff6fb;
+      --card-bg-b: #f6eefc;
+      --accent-a: #ff2458;
+      --accent-b: #ff8a3c;
+      --accent-c: #7f95ff;
+      --text: #2b1214;
+      --muted: #6f5048;
+      --muted-2: #95847d;
+      --item-border: rgba(255,160,180,0.98);
+      --success: #28a745;
+      --border-gap: 6px;
+
+      /* animation timing tokens */
+      --fast: 180ms;
+      --med: 360ms;
+      --underline-short: 900ms;
+      --underline-long: 1200ms;
+
+      /* button gradient animation */
+      --btn-grad-duration: 3600ms;
+      --btn-grad-duration-fast: 1200ms; /* when sending */
+      --btn-grad-angle: 90deg;
+      --btn-radius: 999px;
+      --btn-text-color: #3b1416;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+      .card, .card-wrap { transform: none !important; }
+    }
+
+    * { box-sizing: border-box; }
+    html,body { height:100%; margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
+    body {
+      background:
+        radial-gradient(700px 350px at 10% 12%, rgba(255,150,180,0.14), transparent 12%),
+        radial-gradient(600px 280px at 92% 88%, rgba(160,150,255,0.12), transparent 10%),
+        linear-gradient(180deg, var(--bg-start), var(--bg-end));
+      min-height: 100vh;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding: calc(18px + env(safe-area-inset-top, 12px)) 16px 16px;
+      transition: background 300ms ease;
+      animation: bgDrift 12s ease-in-out infinite;
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    @keyframes bgDrift {
+      0% { background-position: 0% 0%, 100% 100%, 0% 0%; }
+      50% { background-position: 2% 1%, 98% 99%, 1% 1%; }
+      100% { background-position: 0% 0%, 100% 100%, 0% 0%; }
+    }
+
+    .card-wrap {
+      border-radius: calc(20px + var(--border-gap));
+      padding: var(--border-gap);
+      background: conic-gradient(#ff2458,#ff7a9a,#ffd166,#9be15d,#61d4ff,#b88bff,#ff8acb,#ff2458);
+      box-shadow: 0 12px 28px rgba(40,28,28,0.06), inset 0 1px 6px rgba(255,255,255,0.02);
+      position:relative;
+      display:inline-block;
+      animation:none;
+      filter:none;
+      margin-top:6px;
+      overflow:visible;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .card {
+      width:100%;
+      max-width:480px;
+      border-radius:20px;
+      padding:18px;
+      background: linear-gradient(135deg, var(--card-bg-a), var(--card-bg-b));
+      box-shadow: 0 8px 20px rgba(40,30,30,0.05), inset 0 1px 6px rgba(255,255,255,0.02);
+      position:relative;
+      overflow:visible;
+      transform-style:preserve-3d;
+      transition: transform var(--fast) cubic-bezier(.22,.9,.22,1);
+      animation: cardEntrance var(--med) cubic-bezier(.22,.9,.22,1);
+      will-change: transform, opacity;
+      transform: translateZ(0);
+    }
+    @keyframes cardEntrance { from { opacity:0; transform: translateY(6px) scale(.998); } to { opacity:1; transform: translateY(0) scale(1); } }
+
+    h1 {
+      margin:0 0 6px;
+      font-size:1.28rem;
+      text-align:center;
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b), var(--accent-c));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      position:relative;
+      padding-bottom:10px;
+      will-change: contents;
+    }
+
+    /* other styles unchanged (kept as before) */
+    @keyframes underline-slide {
+      0% { transform: translateX(-50%) translateX(0); }
+      25% { transform: translateX(-50%) translateX(8%); }
+      50% { transform: translateX(-50%) translateX(0); }
+      75% { transform: translateX(-50%) translateX(-8%); }
+      100% { transform: translateX(-50%) translateX(0); }
+    }
+
+    h1::after {
+      content:"";
+      position:absolute;
+      left:50%;
+      bottom:0;
+      transform:translateX(-50%);
+      width:64%;
+      max-width:320px;
+      height:6px;
+      border-radius:999px;
+      overflow:hidden;
+      background: linear-gradient(90deg,
+        #ff2458 0%,
+        #ff8acb 20%,
+        #b88bff 40%,
+        #61d4ff 60%,
+        #ffd166 80%,
+        #ff2458 100%);
+      background-size: 220% 100%;
+      animation: underline-slide var(--underline-short) cubic-bezier(.22,.9,.22,1) infinite, underline-color var(--underline-long) linear infinite;
+      box-shadow: 0 6px 12px rgba(255,100,140,0.05);
+      opacity:.98;
+      will-change: transform, background-position;
+      transform: translateZ(0);
+    }
+
+    @keyframes underline-color {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .subtitle { margin:0 0 12px; font-size:.92rem; text-align:center; color:var(--muted); }
+    .time-rec-box { background:rgba(255,255,255,0.94); padding:10px 14px; border-radius:12px; margin-bottom:12px; text-align:center; font-size:.9rem; color:var(--text); box-shadow:0 6px 12px rgba(0,0,0,.03); }
+    .food-list { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; margin:10px 0 12px; }
+
+    .food-item {
+      border-radius:14px;
+      padding:14px 12px;
+      border:1px solid var(--item-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.995), rgba(255,249,246,0.98));
+      cursor:pointer;
+      font-size:1.04rem;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      transition: transform var(--fast) cubic-bezier(.22,.9,.22,1), box-shadow var(--fast) cubic-bezier(.22,.9,.22,1), background .14s ease;
+      user-select:none;
+      min-height:64px;
+      position:relative;
+      overflow:visible;
+      box-shadow:0 8px 18px rgba(60,40,40,0.04);
+      outline:none;
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
+    .food-item .emoji { font-size:1.5rem; transition: transform var(--fast) cubic-bezier(.22,.9,.22,1); display:inline-block; }
+    .food-item:hover { transform: translateY(-6px); box-shadow:0 14px 28px rgba(60,40,40,0.06); }
+    .food-item.active { background: linear-gradient(135deg, rgba(255,68,120,0.14), rgba(142,167,255,0.08)); color:#3b1618; font-weight:700; box-shadow:0 18px 36px rgba(255,68,120,0.08); transform: translateY(-8px) scale(1.02); border:2px solid rgba(255,68,120,0.20); }
+    .food-item.active .emoji { transform: translateY(-5px) scale(1.06); }
+
+    .food-item.pulse::after { content:""; position:absolute; inset:0; border-radius:14px; box-shadow:0 0 0 0 rgba(255,68,120,0.10); animation: pulse 420ms ease-out; pointer-events:none; will-change: box-shadow, opacity; }
+    @keyframes pulse { from { box-shadow:0 0 0 8px rgba(255,68,120,0.08); opacity:.95 } to { box-shadow:0 0 0 34px rgba(255,68,120,0); opacity:0 } }
+
+    .select-shine { position: absolute; top: -10%; left: -40%; width: 40%; height: 120%; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 45%, rgba(255,255,255,0.7) 55%, transparent 100%); transform: skewX(-20deg) translateX(0); pointer-events: none; mix-blend-mode: screen; filter: blur(0.6px); will-change: transform, opacity; z-index: 40; opacity: 0; animation: shine-move var(--shine-duration) cubic-bezier(.2,.9,.2,1) forwards; }
+    @keyframes shine-move { 0% { transform: skewX(-20deg) translateX(-10%) scaleX(.8); opacity: 0; } 10% { opacity: 1; } 60% { transform: skewX(-20deg) translateX(170%) scaleX(1); opacity: 0.95; } 100% { transform: skewX(-20deg) translateX(250%) scaleX(.98); opacity: 0; } }
+
+    .label { font-size:.82rem; color:var(--muted); margin:8px 0 6px; }
+    textarea { width:100%; border-radius:12px; border:1px solid rgba(241,207,195,0.9); padding:10px 12px; font-family:inherit; font-size:.92rem; resize:vertical; min-height:56px; outline:none; background:rgba(255,255,255,0.98); color:var(--text); transition: box-shadow .12s ease, background .12s ease; }
+    textarea::placeholder { color:var(--muted-2); }
+    textarea:focus { box-shadow:0 10px 26px rgba(0,0,0,0.05); }
+
+    .btn-wrap { position:relative; }
+    /*
+      NEW: animated multicolor gradient for the send button.
+      - Uses background-position animation to create a running color effect.
+      - While .sending is present we use a faster duration and add glow.
+    */
+    button {
+      width:100%;
+      margin-top:12px;
+      border-radius: var(--btn-radius);
+      border:none;
+      padding:12px;
+      color: var(--btn-text-color);
+      font-weight:800;
+      cursor:pointer;
+      font-size:.94rem;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      box-shadow:0 12px 32px rgba(64,34,34,0.08);
+      transition: transform .10s ease, box-shadow .10s ease, opacity .10s ease;
+      position:relative;
+      overflow:hidden;
+      /* gradient background (multi color) */
+      background: linear-gradient(var(--btn-grad-angle),
+        #ff2458 0%,
+        #ff8acb 18%,
+        #b88bff 36%,
+        #61d4ff 54%,
+        #ffd166 72%,
+        #ff7a9a 90%);
+      background-size: 300% 100%;
+      color: var(--btn-text-color);
+      /* animate background-position to produce running colors */
+      animation: btn-grad var(--btn-grad-duration) linear infinite;
+      will-change: background-position, box-shadow;
+    }
+
+    @keyframes btn-grad {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* faster & glowing when sending */
+    button.sending {
+      animation-duration: var(--btn-grad-duration-fast);
+      box-shadow: 0 20px 60px rgba(255,110,150,0.18), 0 6px 18px rgba(100,60,120,0.06);
+      transform: translateY(-1px);
+    }
+
+    /* subtle hover enhancement (but keeping movement smooth) */
+    button:hover { box-shadow: 0 18px 46px rgba(64,34,34,0.12); transform: translateY(-2px); }
+
+    button:active { transform:translateY(1px); box-shadow:0 8px 18px rgba(64,34,34,0.07); }
+    button[disabled] { opacity:.72; cursor:default; transform:none; box-shadow:none; }
+
+    .ripple { position:absolute; border-radius:50%; transform:scale(0); background:rgba(255,255,255,0.6); animation:rippleAnim 420ms ease-out; pointer-events:none; will-change: transform, opacity; }
+    @keyframes rippleAnim { to { transform: scale(12); opacity:0; } }
+
+    .btn-spinner { width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.92); border-top-color: rgba(255,255,255,.35); position:absolute; right:12px; top:50%; transform:translateY(-50%); animation:spin .7s linear infinite; display:none; }
+    @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+    button.sending .btn-spinner { display:block; }
+
+    .btn-check { width:20px; height:20px; position:absolute; right:12px; top:50%; transform:translateY(-50%); display:none; color:white; font-weight:900; background:var(--success); border-radius:50%; align-items:center; justify-content:center; display:flex; box-shadow:0 6px 16px rgba(40,167,69,0.10); }
+    button.success .btn-check { display:flex; }
+
+    .status { margin-top:10px; font-size:.84rem; color:var(--muted); min-height:1.2em; text-align:center; }
+    .hint { margin-top:8px; font-size:.75rem; text-align:center; color:var(--muted); opacity:.95; }
+
+    .send-particle { position: absolute; pointer-events: none; font-size: 16px; will-change: transform, opacity; z-index: 1200; text-shadow: 0 6px 14px rgba(0,0,0,0.12); transform: translateZ(0); user-select: none; }
+    .heart { position:absolute; width:36px; height:36px; pointer-events:none; z-index:80; opacity:0; transform:translateY(0) scale(.9); }
+    .confetti-piece { position:absolute; width:8px; height:12px; opacity:0.95; border-radius:2px; transform-origin:center; will-change: transform, top, left, opacity; pointer-events:none; z-index:60; }
+
+    @media (prefers-reduced-motion: reduce) {
+      button { animation: none !important; }
+    }
+
+    @media (max-width:480px) {
+      .food-list { grid-template-columns:1fr; gap:12px; }
+      .food-item { min-height:72px; padding:18px 16px; font-size:1.06rem; gap:12px; border-radius:16px; }
+      .food-item .emoji { font-size:1.7rem; }
+      .card { padding:16px; }
+      textarea { min-height:72px; }
+      h1 { font-size:1.18rem; }
+      h1::after { width:84%; height:5px; }
+    }
+
+    .food-item:focus { box-shadow: 0 0 0 6px rgba(127,149,255,0.18); outline:none; }
+  </style>
+
+  <!-- Intro CSS inserted (only addition) -->
+  <style>
+    /* Enhanced intro styles & animations (added only) */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: radial-gradient(circle at 50% 30%, rgba(255,250,254,0.98), rgba(255,250,255,0.95));
+      pointer-events: auto;
+    }
+
+    .intro-box {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      background: linear-gradient(180deg,#fff,#fff8fb);
+      border-radius:14px;
+      padding:12px 16px;
+      box-shadow: 0 18px 48px rgba(160,80,130,0.06);
+      transform: translateY(6px) scale(.98);
+      opacity: 0;
+      animation: intro-pop 560ms cubic-bezier(.22,.9,.22,1) forwards;
+    }
+
+    .intro-mascot {
+      width:56px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:12px;
+      font-size:30px;
+      background: linear-gradient(180deg,#fff6fb,#ffdfe8);
+      will-change: transform, box-shadow;
+      /* keep bounce and add subtle wiggle (left-right) for liveliness */
+      animation:
+        mascot-bounce 1200ms cubic-bezier(.2,.9,.2,1) 200ms forwards,
+        mascot-wiggle 2000ms ease-in-out 1400ms infinite;
+      transform-origin: center;
+    }
+
+    @keyframes mascot-bounce {
+      0% { transform: translateY(0) scale(.96); box-shadow: 0 8px 18px rgba(255,120,160,0.02); }
+      35% { transform: translateY(-10px) scale(1.06); box-shadow: 0 18px 36px rgba(255,120,160,0.08); }
+      70% { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 28px rgba(255,120,160,0.05); }
+      100% { transform: translateY(0) scale(1); box-shadow: 0 8px 18px rgba(255,120,160,0.02); }
+    }
+
+    /* new wiggle animation: subtle rotate left-right */
+    @keyframes mascot-wiggle {
+      0%   { transform: translateY(0) rotate(-4deg); }
+      25%  { transform: translateY(0) rotate(4deg); }
+      50%  { transform: translateY(0) rotate(-6deg); }
+      75%  { transform: translateY(0) rotate(4deg); }
+      100% { transform: translateY(0) rotate(-4deg); }
+    }
+
+    .intro-text { font-weight:800; color:var(--text); font-size:1rem; line-height:1; }
+    .intro-sub { font-size: .85rem; color: var(--muted); margin-top:6px; font-weight:600; }
+
+    .intro-spark { position:absolute; width:10px; height:10px; border-radius:50%; background:#fff; opacity:0; filter: drop-shadow(0 6px 12px rgba(255,140,170,0.12)); }
+
+    /* petals/floating items */
+    .intro-petal {
+      position:absolute;
+      width:14px;
+      height:14px;
+      border-radius:4px;
+      opacity:0;
+      transform: translateY(0) scale(.6) rotate(0deg);
+      will-change: transform, opacity;
+      z-index: 2010;
+      pointer-events: none;
+    }
+
+    @keyframes petal-shower {
+      0% { transform: translate3d(0,0,0) rotate(0deg) scale(.6); opacity: 1; }
+      70% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)) scale(.9); opacity: 0.9; }
+      100% { transform: translate3d(calc(var(--dx) * 1.6), calc(var(--dy) * 1.6), 0) rotate(calc(var(--rot) * 1.4)) scale(.3); opacity: 0; }
+    }
+
+    /* tiny flying emojis that pop out from intro */
+    .intro-fly {
+      position:absolute;
+      font-size:16px;
+      opacity:0;
+      transform: translateY(0) scale(1);
+      will-change: transform, opacity;
+      pointer-events: none;
+      z-index: 2020;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .intro-overlay, .intro-box, .intro-mascot, .intro-spark, .intro-petal, .intro-fly { display:none !important; }
+    }
+
+    @keyframes intro-pop { to { transform: translateY(0) scale(1); opacity: 1; } }
+  </style>
+</head>
+<body>
+  <!-- Intro overlay: only this block was added (plays for 5s, no skip) -->
+  <div id="introOverlay" class="intro-overlay" aria-hidden="false">
+    <div class="intro-spark" style="left:18%; top:22%;"></div>
+    <div class="intro-spark" style="left:82%; top:24%;"></div>
+    <div class="intro-spark" style="left:52%; top:12%;"></div>
+
+    <div class="intro-box" role="status" aria-live="polite">
+      <div class="intro-mascot" aria-hidden="true">🐱</div>
+      <div>
+        <div class="intro-text">Chào chị! 💕</div>
+        <div class="intro-sub">Chọn món và gửi cho em nhé — bắt đầu nào!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- .card-wrap provides the 7-color ring (now static) -->
+  <div class="card-wrap" aria-hidden="false">
+    <div class="card" id="card" aria-label="Form chọn món">
+      <h1>Hôm nay chị muốn ăn gì? 💕</h1>
+      <div class="subtitle">Chị chọn món, hệ thống tự thì thầm với em 😚</div>
+
+      <div id="timeRec" class="time-rec-box" style="display:none"></div>
+
+      <div class="food-list" id="foodList" role="list">
+        <div class="food-item" data-food="Lẩu" tabindex="0"><span class="emoji">🔥</span><span>Lẩu</span></div>
+        <div class="food-item" data-food="Nướng" tabindex="0"><span class="emoji">🍖</span><span>Nướng</span></div>
+        <div class="food-item" data-food="Mì cay" tabindex="0"><span class="emoji">🌶️</span><span>Mì cay</span></div>
+        <div class="food-item" data-food="Trà sữa" tabindex="0"><span class="emoji">🧋</span><span>Trà sữa</span></div>
+        <div class="food-item" data-food="Ăn vặt" tabindex="0"><span class="emoji">🍰</span><span>Ăn vặt</span></div>
+        <div class="food-item" data-food="Cơm" tabindex="0"><span class="emoji">🍚</span><span>Cơm</span></div>
+      </div>
+
+      <div class="label">Ghi thêm cho em nè (không bắt buộc):</div>
+      <textarea id="note" placeholder="VD: không cay, thêm phô mai, gần nhà em thôi..." aria-label="Ghi chú"></textarea>
+
+      <div class="btn-wrap">
+        <button id="sendBtn" aria-live="polite" type="button">
+          Gửi cho em 💌
+          <div class="btn-spinner" aria-hidden="true"></div>
+          <div class="btn-check" aria-hidden="true">✓</div>
+        </button>
+      </div>
+
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="hint">Nếu có gì lỗi, chị cứ nhắn em trực tiếp nha 😆</div>
+
+      <!-- floating heart template (hidden) -->
+      <div id="heart" class="heart" aria-hidden="true" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 21s-7.5-4.35-9-7.1C1.5 10.9 4.2 7.5 7.5 8.5 9 9 10 11 12 12.5c2-1.5 3-3.5 4.5-4 3.3-1 6 2.4 4.5 5.4-1.5 2.75-9 7.1-9 7.1z" fill="#ff5f93"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intro script (only addition) -->
+  <script>
+    (function() {
+      const overlay = document.getElementById('introOverlay');
+      if (!overlay) return;
+
+      // Respect reduced motion: remove overlay immediately and scroll to bottom
+      const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const scrollToBottom = (smooth) => {
+        try {
+          const top = document.body.scrollHeight;
+          if (smooth) window.scrollTo({ top, left: 0, behavior: 'smooth' });
+          else window.scrollTo(0, top);
+        } catch (e) {
+          window.scrollTo(0, document.body.scrollHeight || 0);
+        }
+      };
+
+      if (prefersReduced) {
+        overlay.parentNode.removeChild(overlay);
+        scrollToBottom(false);
+        return;
+      }
+
+      // 1) simple sparkles (one-shot)
+      const sparks = Array.from(overlay.querySelectorAll('.intro-spark'));
+      sparks.forEach((s, i) => {
+        const dx = (Math.random() - 0.5) * 80;
+        const dy = - (40 + Math.random() * 80);
+        const rot = (Math.random() - 0.5) * 360;
+        const delay = 120 + i * 120;
+        const dur = 900 + Math.random() * 700;
+        s.animate([
+          { transform: 'translate3d(0,0,0) scale(0.9)', opacity: 0 },
+          { transform: `translate3d(${dx}px, ${dy/2}px, 0) scale(1) rotate(${rot/2}deg)`, opacity: 1 },
+          { transform: `translate3d(${dx*1.6}px, ${dy}px, 0) scale(.4) rotate(${rot}deg)`, opacity: 0 }
+        ], { duration: dur, easing: 'cubic-bezier(.2,.9,.2,1)', delay, fill: 'forwards' });
+      });
+
+      // 2) spawn colorful petals and flying emojis for extra cuteness
+      const colors = ["#ff6b9a","#ffd166","#8ea7ff","#ff9bc2","#ffb15a"];
+      const flyEmojis = ["🍚","🧋","🍖","🍰","🌶️","🔥"];
+      const center = overlay.getBoundingClientRect();
+      const cx = center.left + center.width / 2;
+      const cy = center.top + center.height / 2;
+
+      // create petals rapidly in first 1.2s
+      const petalCount = 14;
+      for (let i = 0; i < petalCount; i++) {
+        const p = document.createElement('div');
+        p.className = 'intro-petal';
+        p.style.background = colors[i % colors.length];
+        // random starting position around intro-box center
+        const startLeft = (40 + Math.random() * 20) + '%';
+        const startTop = (40 + Math.random() * 20) + '%';
+        p.style.left = startLeft;
+        p.style.top = startTop;
+        // random motion vars via CSS vars, used in keyframe
+        const dx = (Math.random() - 0.5) * 220 + 'px';
+        const dy = - (120 + Math.random() * 220) + 'px';
+        const rot = (Math.random() - 0.5) * 720 + 'deg';
+        p.style.setProperty('--dx', dx);
+        p.style.setProperty('--dy', dy);
+        p.style.setProperty('--rot', rot);
+        overlay.appendChild(p);
+        // staggered start
+        const delay = 200 + i * 60;
+        const duration = 900 + Math.random()*700;
+        p.animate([
+          { transform: 'translate3d(0,0,0) rotate(0deg) scale(.6)', opacity: 1 },
+          { transform: `translate3d(${dx}, ${dy}, 0) rotate(${rot}) scale(.95)`, opacity: 0.95 },
+          { transform: `translate3d(calc(${dx} * 1.6), calc(${dy} * 1.6), 0) rotate(calc(${rot} * 1.3)) scale(.3)`, opacity: 0 }
+        ], { duration, delay, easing: 'cubic-bezier(.2,.9,.2,1)', fill: 'forwards' });
+        // cleanup after animation
+        setTimeout(() => { if (p.parentNode) p.parentNode.removeChild(p); }, 2000 + delay);
+      }
+
+      // 3) spawn a few flying emoji 'pops' (pop + float) timed in first 1.4s
+      const flyCount = 8;
+      for (let i = 0; i < flyCount; i++) {
+        const el = document.createElement('div');
+        el.className = 'intro-fly';
+        el.textContent = flyEmojis[Math.floor(Math.random()*flyEmojis.length)];
+        // position near center visually
+        el.style.left = (50 + (Math.random()-0.5)*18) + '%';
+        el.style.top = (48 + (Math.random()-0.5)*12) + '%';
+        overlay.appendChild(el);
+        const dx = (Math.random()-0.5) * 120;
+        const dy = - (120 + Math.random()*160);
+        const rot = (Math.random()-0.5) * 480;
+        const delay = 260 + i*90;
+        const dur = 1100 + Math.random()*700;
+        el.animate([
+          { transform: 'translate3d(0,0,0) scale(.8) rotate(0deg)', opacity: 0 },
+          { transform: `translate3d(${dx/2}px, ${dy/2}px,0) scale(1.15) rotate(${rot/2}deg)`, opacity: 1 },
+          { transform: `translate3d(${dx}px, ${dy}px,0) scale(.5) rotate(${rot}deg)`, opacity: 0 }
+        ], { duration: dur, delay, easing: 'cubic-bezier(.2,.9,.2,1)', fill: 'forwards' });
+        setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, dur + delay + 120);
+      }
+
+      // 4) slight mascot extra bounce sequence (repeat once)
+      const mascot = overlay.querySelector('.intro-mascot');
+      if (mascot) {
+        mascot.animate([
+          { transform: 'translateY(0) scale(1)' },
+          { transform: 'translateY(-8px) scale(1.06)' },
+          { transform: 'translateY(0) scale(1)' }
+        ], { duration: 1400, easing: 'cubic-bezier(.22,.9,.22,1)', delay: 400 });
+      }
+
+      // remove overlay after 5s (5000ms), then auto-scroll to bottom smoothly
+      const introMs = 5000;
+      setTimeout(() => {
+        overlay.style.transition = 'opacity 360ms ease, transform 360ms ease';
+        overlay.style.opacity = '0';
+        overlay.style.transform = 'translateY(-6px)';
+        setTimeout(() => {
+          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          // After overlay removed, scroll to bottom smoothly
+          try {
+            window.scrollTo({ top: document.body.scrollHeight, left: 0, behavior: 'smooth' });
+          } catch (e) {
+            window.scrollTo(0, document.body.scrollHeight || 0);
+          }
+        }, 420);
+      }, introMs);
+    })();
+  </script>
+
+  <script>
+    // === Config (kept sendChoice intact) ===
+    const WEBHOOK_URL = "https://hom-nay-an.anhn36211.workers.dev";
+
+    function safeJSONParse(str, fallback = {}) {
+      try { return JSON.parse(str); } catch { return fallback; }
+    }
+
+    function getTimeRecommendation() {
+      const now = new Date();
+      const h = now.getHours() + now.getMinutes()/60;
+      if (h >= 5 && h < 10.5) return ["Phở", "Bún", "Bánh mì", "Xôi", "Mì"];
+      if (h >= 10.5 && h < 14.5) return ["Cơm", "Mì cay", "Lẩu nhẹ", "Bún", "Nhịn"];
+      if (h >= 14.5 && h < 21) return ["Nướng", "Lẩu", "Ốc", "Trà sữa", "Ăn vặt"];
+      return ["Mì", "Đồ ăn nhẹ"];
+    }
+    function showTimeRecommendation(){
+      const box = document.getElementById("timeRec");
+      const rec = getTimeRecommendation();
+      box.textContent = "Gợi ý cho giờ này: " + rec.join(", ");
+      box.style.display = "block";
+    }
+
+    const FAV_KEY = "fav_foods";
+    function saveFavorite(food) {
+      try {
+        const data = safeJSONParse(localStorage.getItem(FAV_KEY), {});
+        data[food] = (Number(data[food]) || 0) + 1;
+        localStorage.setItem(FAV_KEY, JSON.stringify(data));
+      } catch (e) { console.warn("saveFavorite error", e); }
+    }
+    function getTopFavorite() {
+      const data = safeJSONParse(localStorage.getItem(FAV_KEY), {});
+      let top = null, max = -1;
+      for (const f in data) {
+        const n = Number(data[f]) || 0;
+        if (n > max) { max = n; top = f; }
+      }
+      return top;
+    }
+    function boostFavorite() {
+      const top = getTopFavorite();
+      if (!top) return;
+      const list = document.querySelectorAll(".food-item");
+      list.forEach(item => {
+        if (item.dataset.food === top) {
+          item.style.border = "2px solid rgba(255,68,120,0.24)";
+          item.style.background = "linear-gradient(120deg, rgba(255,220,230,0.6), rgba(238,225,255,0.4))";
+        }
+      });
+      if (!document.querySelector(".fav-note") && top) {
+        const msg = document.createElement("div");
+        msg.className = "fav-note";
+        msg.style.fontSize = ".8rem";
+        msg.style.textAlign = "center";
+        msg.style.color = "#b35b6a";
+        msg.style.marginBottom = "8px";
+        msg.innerHTML = `❤️ Hệ thống nhớ: Chị hay chọn <b>${top}</b> nhất!`;
+        document.querySelector(".card").prepend(msg);
+      }
+    }
+
+    // UI elements
+    const foodList = document.getElementById("foodList");
+    const statusEl = document.getElementById("status");
+    const sendBtn = document.getElementById("sendBtn");
+    const noteEl = document.getElementById("note");
+    const card = document.getElementById("card");
+    const heartTemplate = document.getElementById("heart");
+    let selectedFood = null;
+    let isSending = false;
+    let voted = false;
+
+    // entrance stagger
+    (function entranceStagger(){
+      const items = Array.from(document.querySelectorAll(".food-item"));
+      items.forEach((it, idx) => {
+        it.style.opacity = 0;
+        it.style.transform = "translateY(8px)";
+        setTimeout(() => {
+          it.style.transition = "opacity .28s cubic-bezier(.22,.9,.22,1), transform .28s cubic-bezier(.22,.9,.22,1)";
+          it.style.opacity = 1;
+          it.style.transform = "translateY(0)";
+        }, 50 * idx + 30);
+      });
+    })();
+
+    // animateSelect (shine)
+    function animateSelect(item){
+      item.classList.add("pulse");
+      setTimeout(() => item.classList.remove("pulse"), 420);
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const shine = document.createElement('div');
+      shine.className = 'select-shine';
+      const baseDur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--shine-duration')) || 520;
+      const extra = Math.floor(Math.random()*120) - 40;
+      const dur = Math.max(260, baseDur + extra);
+      shine.style.animationDuration = dur + 'ms';
+      const startOffset = -30 - Math.random()*20;
+      shine.style.left = startOffset + '%';
+      item.appendChild(shine);
+      shine.offsetWidth;
+      function removeShine() { if (shine && shine.parentNode) shine.parentNode.removeChild(shine); shine.removeEventListener('animationend', removeShine); }
+      shine.addEventListener('animationend', removeShine);
+      setTimeout(removeShine, dur + 80);
+    }
+
+    foodList.addEventListener("click", (e) => {
+      if (voted) {
+        statusEl.textContent = "Chị đã chọn rồi — làm mới trang để chọn tiếp 💗";
+        return;
+      }
+      const item = e.target.closest(".food-item");
+      if (!item) return;
+      document.querySelectorAll(".food-item").forEach(el => el.classList.remove("active"));
+      item.classList.add("active");
+      item.focus?.();
+      selectedFood = item.dataset.food;
+      statusEl.textContent = "";
+      animateSelect(item);
+    });
+
+    // keyboard navigation
+    foodList.addEventListener("keydown", (e) => {
+      if (voted) return;
+      const items = Array.from(document.querySelectorAll(".food-item"));
+      const idx = items.findIndex(i => i === document.activeElement);
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const next = items[(idx + 1) % items.length];
+        next.focus();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        const prev = items[(idx - 1 + items.length) % items.length];
+        prev.focus();
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const item = document.activeElement;
+        if (item && item.classList.contains("food-item")) {
+          item.click();
+        }
+      }
+    });
+
+    // ripple on send button
+    sendBtn.addEventListener("click", (e) => {
+      const rect = sendBtn.getBoundingClientRect();
+      const r = document.createElement("div");
+      r.className = "ripple";
+      const size = Math.max(rect.width, rect.height) * 0.18;
+      r.style.width = r.style.height = size + "px";
+      const x = (e.clientX || rect.left + rect.width/2) - rect.left - size/2;
+      const y = (e.clientY || rect.top + rect.height/2) - rect.top - size/2;
+      r.style.left = x + "px";
+      r.style.top = y + "px";
+      sendBtn.appendChild(r);
+      setTimeout(() => r.remove(), 480);
+    });
+
+    // spawn particles (icons + hearts) from the send button with longer lifetime
+    function spawnSendParticles(e) {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const btn = sendBtn;
+      const rect = btn.getBoundingClientRect();
+      const centerX = rect.left + rect.width/2;
+      const centerY = rect.top + rect.height/2;
+
+      // get selected item's emoji (if any)
+      let icon = null;
+      const activeEmoji = document.querySelector('.food-item.active .emoji');
+      if (activeEmoji) icon = activeEmoji.textContent.trim();
+
+      const hearts = ['❤️','💗','💖','💕','💘'];
+      const total = 16; // more particles
+      const minDur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--particle-min-duration')) || 1800;
+      const maxDur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--particle-max-duration')) || 2600;
+
+      for (let i = 0; i < total; i++) {
+        const el = document.createElement('div');
+        el.className = 'send-particle';
+        const useIcon = icon && Math.random() < 0.33; // ~33% chance to show item icon
+        if (useIcon) {
+          el.textContent = icon;
+          el.style.fontSize = (18 + Math.random()*10) + 'px';
+        } else {
+          el.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+          el.style.fontSize = (14 + Math.random()*10) + 'px';
+        }
+        document.body.appendChild(el);
+
+        // set start position (center of button + small random offset)
+        const startX = centerX + (Math.random()-0.5) * 18;
+        const startY = centerY + (Math.random()-0.5) * 12;
+        el.style.left = startX + 'px';
+        el.style.top = startY + 'px';
+
+        // target movement: farther and slower (longer fade)
+        const dx = (Math.random() - 0.5) * 240; // wider spread
+        const dy = - (160 + Math.random() * 180); // higher travel
+        const rotate = (Math.random() - 0.5) * 720;
+        const dur = minDur + Math.random() * (maxDur - minDur); // 1800..2600ms
+
+        // gentle scale and ease out
+        el.animate([
+          { transform: `translate3d(0px,0px,0) rotate(0deg) scale(1)`, opacity: 1 },
+          { transform: `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(.65)`, opacity: 0 }
+        ], {
+          duration: dur,
+          easing: 'cubic-bezier(.22,.9,.2,1)',
+          fill: 'forwards'
+        });
+
+        // cleanup after animation
+        setTimeout(() => {
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+        }, dur + 120);
+      }
+    }
+
+    // attach particle spawn to send button click (in addition to existing ripple & send)
+    sendBtn.addEventListener('click', (e) => {
+      try { spawnSendParticles(e); } catch (err) { console.warn('spawnSendParticles error', err); }
+    }, { passive: true });
+
+    // confetti generator: intentionally no-op to avoid heavy effects (kept so calls won't break)
+    function createConfetti(x = window.innerWidth/2, y = window.innerHeight/2, count = 22) {
+      return;
+    }
+
+    // floating heart (faster)
+    function floatHeart() {
+      const rect = card.getBoundingClientRect();
+      const h = heartTemplate.cloneNode(true);
+      h.style.display = "block";
+      h.style.left = (rect.left + rect.width/2 - 18) + "px";
+      h.style.top = (rect.top + 18) + "px";
+      document.body.appendChild(h);
+      h.animate([
+        { transform: "translateY(0) scale(.95)", opacity: 1 },
+        { transform: "translateY(-64px) scale(1.08)", opacity: 0 }
+      ], { duration: 780, easing: "cubic-bezier(.22,.9,.22,1)" });
+      setTimeout(() => h.remove(), 880);
+    }
+
+    // small, cheap burst (lightweight visual feedback)
+    function smallCuteBurst(x, y, count = 6) {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const colors = ["#ff6b9a","#ffb15a","#ffd166","#8ea7ff","#ff9bc2"];
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement("div");
+        el.className = "confetti-piece";
+        el.style.width = "10px";
+        el.style.height = "10px";
+        el.style.left = (x + (Math.random()-0.5) * 20) + "px";
+        el.style.top = (y + (Math.random()-0.5) * 10) + "px";
+        el.style.background = colors[i % colors.length];
+        el.style.borderRadius = "4px";
+        el.style.opacity = "1";
+        el.style.zIndex = 1100;
+        el.style.transform = "translateZ(0)";
+        document.body.appendChild(el);
+        const dx = (Math.random() - 0.5) * 60;
+        const dy = - (30 + Math.random() * 60);
+        const rot = (Math.random() - 0.5) * 360;
+        el.animate([
+          { transform: `translate3d(0px,0px,0) rotate(0deg) scale(1)`, opacity:1 },
+          { transform: `translate3d(${dx}px, ${dy}px,0) rotate(${rot}deg) scale(.6)`, opacity:0 }
+        ], { duration: 520 + Math.random()*260, easing: "cubic-bezier(.22,.9,.22,1)" });
+        setTimeout(() => el.remove(), 760);
+      }
+    }
+
+    function onSendSuccess() {
+      sendBtn.classList.remove("sending");
+      sendBtn.classList.add("success");
+      setTimeout(() => sendBtn.classList.remove("success"), 1000);
+      const rect = card.getBoundingClientRect();
+      smallCuteBurst(rect.left + rect.width/2, rect.top + 18, 8);
+      floatHeart();
+    }
+
+    // sendChoice intentionally UNTOUCHED per your request
+    async function sendChoice() {
+      if (isSending) return;
+      if (voted) {
+        statusEl.textContent = "Chị đã chọn trong lần truy cập này 😛";
+        return;
+      }
+      if (!selectedFood) {
+        statusEl.textContent = "Chị chọn món trước đã nha 😛";
+        return;
+      }
+
+      statusEl.textContent = "Đang gửi cho em... 💌";
+      isSending = true;
+      sendBtn.disabled = true;
+      sendBtn.classList.add("sending");
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            choice: selectedFood,
+            note: noteEl.value.trim(),
+            from: "Chị ",
+            timestamp: new Date().toISOString()
+          })
+        });
+        if (!res.ok) throw new Error("Network error");
+
+        saveFavorite(selectedFood);
+
+        // mark as voted for this visit (in-memory only) and disable UI
+        voted = true;
+        document.querySelectorAll('.food-item').forEach(el => {
+          el.classList.remove('active');
+          el.style.pointerEvents = 'none';
+          el.setAttribute('aria-disabled', 'true');
+          el.tabIndex = -1;
+        });
+
+        statusEl.textContent = "Đã gửi cho em rồi đó! 💕";
+        onSendSuccess();
+        boostFavorite();
+      } catch (err) {
+        console.error("sendChoice error:", err);
+        statusEl.textContent = "Hình như mạng hơi yếu, chị thử lại giúp em 😢";
+      } finally {
+        isSending = false;
+        sendBtn.disabled = false;
+        sendBtn.classList.remove("sending");
+      }
+    }
+
+    // click triggers send
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      setTimeout(() => sendChoice(), 60);
+    });
+
+    // Ctrl/Cmd+Enter shortcut inside textarea
+    noteEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        sendChoice();
+      }
+    });
+
+    // card tilt optimized: keep requestAnimationFrame, but cap updates to ~60fps automatically by RAF
+    (function cardTilt() {
+      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (prefersReduced || "ontouchstart" in window) return;
+      let raf = null;
+      card.addEventListener("mousemove", (e) => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          const r = card.getBoundingClientRect();
+          const px = (e.clientX - r.left) / r.width;
+          const py = (e.clientY - r.top) / r.height;
+          const rotY = (px - 0.5) * 5.5;
+          const rotX = (0.5 - py) * 4.5;
+          card.style.transform = `rotateY(${rotY}deg) rotateX(${rotX}deg) translateZ(0)`;
+        });
+      });
+      card.addEventListener("mouseleave", () => { card.style.transform = "rotateY(0deg) rotateX(0deg)"; });
+    })();
+
+    // keyboard: Enter/Space on focused item selects it
+    document.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && document.activeElement && document.activeElement.classList?.contains("food-item")) {
+        e.preventDefault();
+        document.activeElement.click();
+      }
+    });
+
+    // init
+    showTimeRecommendation();
+    boostFavorite();
+  </script>
+</body>
+</html>
